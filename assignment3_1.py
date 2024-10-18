@@ -4,7 +4,7 @@ import torch
 
 app = Flask(__name__)
 
-# 定义16种MBTI类型
+# How to get in
 MBTI_TYPES = [
     "INTJ", "INTP", "ENTJ", "ENTP",
     "INFJ", "INFP", "ENFJ", "ENFP",
@@ -12,7 +12,7 @@ MBTI_TYPES = [
     "ISTP", "ISFP", "ESTP", "ESFP"
 ]
 
-# 初始化DiffusionPipeline
+# Initialize DiffusionPipeline
 model = "runwayml/stable-diffusion-v1-5"
 pipe = DiffusionPipeline.from_pretrained(model, torch_dtype=torch.float32)
 pipe.to("cpu")
@@ -27,12 +27,12 @@ def generate():
     prompt = request.form.get('prompt')
     full_prompt = f"{prompt} {mbti_input} character"
     
-    # 生成图像（此处生成的图像不会显示在前端）
+    # Generate image (the generated image will be appear after finishing the generate)
     images = pipe(full_prompt, num_inference_steps=20).images
     image_path = "generated_image.png"
-    images[0].save(image_path)  # 保存生成的图像
-    images[0].show()
-    return "Image generated successfully"  # 只返回一个成功消息，而不是图像路径
+    images[0].save(image_path)  # Save the generated image
+    images[0].show()            # Show the generated image
+    return "Image generated successfully" 
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -70,7 +70,7 @@ HTML_TEMPLATE = """
         }
         .button-container {
             display: flex;
-            justify-content: center; /* 居中按钮 */
+            justify-content: center; /* Center the button */
             margin-top: 20px;
         }
         .button {
@@ -87,13 +87,13 @@ HTML_TEMPLATE = """
             background-color: darkblue;
         }
         #dwarfMessage {
-            display: none; /* 初始隐藏 */
+            display: none; /* Initially hidden */
             font-size: 24px;
             color: green;
             margin-top: 20px;
         }
         #goFindMessage { 
-            display: none; /* 初始隐藏 */
+            display: none; /* Initially hidden */
             font-size: 24px;
             color: orange;
             margin-top: 20px;
@@ -135,12 +135,12 @@ HTML_TEMPLATE = """
             const upperCasePassword = password.toUpperCase();
             const mbtiTypes = {{ mbti_types|tojson }};
             if (mbtiTypes.includes(upperCasePassword)) {
-                document.getElementById('mainTitle').innerText = 'Welcome. You did it!'; // 更新标题
-                document.getElementById('passwordSection').style.display = 'none'; // 隐藏密码输入框和确认按钮
-                currentMBTI = upperCasePassword; // 保存当前输入的MBTI
-                document.getElementById('promptSection').style.display = 'block'; // 显示关键词输入框
+                document.getElementById('mainTitle').innerText = 'Welcome. You did it!'; // Update title
+                document.getElementById('passwordSection').style.display = 'none'; // Hide password input and confirm button
+                currentMBTI = upperCasePassword; // Save the current MBTI input
+                document.getElementById('promptSection').style.display = 'block'; // Show keyword input box
 
-                // 添加彩带特效
+                // Add confetti effect
                 confetti({
                   particleCount: 100,
                   spread: 70,
@@ -148,13 +148,13 @@ HTML_TEMPLATE = """
                 });
 
             } else {
-                alert('Come on!?!(╯▔皿▔)╯ Try entering your mbti.'); // 提示用户输入错误
+                alert('Come on!?!(╯▔皿▔)╯ Try entering your mbti.'); // Prompt user for incorrect input
                 
-                // 清空输入框内容
+                // Clear input box contents
                 inputs.forEach(input => {
                     input.value = '';
                 });
-                inputs[0].focus(); // 聚焦第一个输入框
+                inputs[0].focus(); // Focus on the first input box
             }
         }
 
@@ -169,7 +169,7 @@ HTML_TEMPLATE = """
             })
             .then(response => response.text())
             .then(message => {
-                // 不显示图像，只显示生成成功的消息
+                // Do not display image, only show success message
                 document.getElementById('goFindMessage').style.display = 'block';
             })
             .catch(error => console.error('Error:', error));
