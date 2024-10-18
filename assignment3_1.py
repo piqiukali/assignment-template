@@ -15,7 +15,7 @@ MBTI_TYPES = [
 # Initialize DiffusionPipeline
 model = "runwayml/stable-diffusion-v1-5"
 pipe = DiffusionPipeline.from_pretrained(model, torch_dtype=torch.float32)
-pipe.to("cpu")
+pipe.to("cuda")
 
 @app.route('/')
 def home():
