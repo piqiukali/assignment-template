@@ -1,7 +1,6 @@
 from flask import Flask, render_template_string, request
 from diffusers import DiffusionPipeline
 import torch
-import os
 
 app = Flask(__name__)
 
@@ -25,13 +24,15 @@ def home():
 @app.route('/generate', methods=['POST'])
 def generate():
     mbti_input = request.form.get('mbti')
-    prompt = f"{mbti_input} character"
+    prompt = request.form.get('prompt')
+    full_prompt = f"{prompt} {mbti_input} character"
     
-    # 生成图像
-    images = pipe(prompt, num_inference_steps=20).images
+    # 生成图像（此处生成的图像不会显示在前端）
+    images = pipe(full_prompt, num_inference_steps=20).images
     image_path = "generated_image.png"
     images[0].save(image_path)  # 保存生成的图像
-    return image_path
+    images[0].show()
+    return "Image generated successfully"  # 只返回一个成功消息，而不是图像路径
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -50,7 +51,7 @@ HTML_TEMPLATE = """
             height: 100vh;
             margin: 0;
         }
-        h1, h2 {
+        h1 {
             text-align: center;
         }
         .input-container {
@@ -67,6 +68,11 @@ HTML_TEMPLATE = """
             border: 2px solid #ccc;
             border-radius: 5px;
         }
+        .button-container {
+            display: flex;
+            justify-content: center; /* 居中按钮 */
+            margin-top: 20px;
+        }
         .button {
             padding: 15px 30px;
             font-size: 18px;
@@ -80,36 +86,43 @@ HTML_TEMPLATE = """
         .button:hover {
             background-color: darkblue;
         }
-        .message {
-            margin-top: 20px;
-            font-size: 18px;
-        }
-        #generatedImage {
-            margin-top: 20px;
+        #dwarfMessage {
             display: none; /* 初始隐藏 */
+            font-size: 24px;
+            color: green;
+            margin-top: 20px;
+        }
+        #goFindMessage { 
+            display: none; /* 初始隐藏 */
+            font-size: 24px;
+            color: orange;
+            margin-top: 20px;
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti"></script>
 </head>
 <body>
-    <h1>welcome to 16 Dwarf Kingdoms!</h1>
-    <h2>enter password to find your Dwarf！</h2>
-    <div class="input-container">
-        <input type="text" class="input-box" maxlength="1" oninput="this.nextElementSibling.focus();">
-        <input type="text" class="input-box" maxlength="1" oninput="this.nextElementSibling.focus();">
-        <input type="text" class="input-box" maxlength="1" oninput="this.nextElementSibling.focus();">
-        <input type="text" class="input-box" maxlength="1">
+    <div id="titleSection">
+        <h1 id="mainTitle">Enter the password to enter the program</h1>
     </div>
-    <button class="button" onclick="validatePassword()">确认</button>
-    <div class="message" id="message"></div>
-
-    <div id="characterPrompt" style="display:none;">
-        <h3>输入关键词，找到你的小矮人：</h3>
-        <button class="button" onclick="generateImage()">生成图像</button>
+    <div id="passwordSection">
+        <div class="input-container">
+            <input type="text" class="input-box" maxlength="1" oninput="this.nextElementSibling?.focus();">
+            <input type="text" class="input-box" maxlength="1" oninput="this.nextElementSibling?.focus();">
+            <input type="text" class="input-box" maxlength="1" oninput="this.nextElementSibling?.focus();">
+            <input type="text" class="input-box" maxlength="1">
+        </div>
+        <div class="button-container">
+            <button class="button" onclick="validatePassword()">OK</button>
+        </div>
     </div>
+    <div id="promptSection" style="display:none;">
+        <h3>Enter keywords to have your own mbti character：</h3>
+        <input type="text" id="promptInput" placeholder="Enter keywords">
+        <button class="button" onclick="generateImage()">GO!</button>
+    </div>
+    <div id="dwarfMessage">Go find your mbti character!!</div>
     
-    <img id="generatedImage" src="" alt="生成的图像">
-
     <script>
         let currentMBTI = '';
 
@@ -121,35 +134,43 @@ HTML_TEMPLATE = """
             });
             const upperCasePassword = password.toUpperCase();
             const mbtiTypes = {{ mbti_types|tojson }};
-            const messageElement = document.getElementById('message');
             if (mbtiTypes.includes(upperCasePassword)) {
-                messageElement.innerText = '密码正确，欢迎进入！';
-                messageElement.style.color = 'green';
-                confetti({
-                    particleCount: 100,
-                    spread: 70,
-                    origin: { y: 0.6 }
-                });
+                document.getElementById('mainTitle').innerText = 'Welcome. You did it!'; // 更新标题
+                document.getElementById('passwordSection').style.display = 'none'; // 隐藏密码输入框和确认按钮
                 currentMBTI = upperCasePassword; // 保存当前输入的MBTI
-                document.getElementById('characterPrompt').style.display = 'block'; // 显示输入关键词的按钮
+                document.getElementById('promptSection').style.display = 'block'; // 显示关键词输入框
+
+                // 添加彩带特效
+                confetti({
+                  particleCount: 100,
+                  spread: 70,
+                  origin: { y: 0.6 }
+                });
+
             } else {
-                messageElement.innerText = '密码错误，尝试输入你的mbti？';
-                messageElement.style.color = 'red';
+                alert('Come on!?!(╯▔皿▔)╯ Try entering your mbti.'); // 提示用户输入错误
+                
+                // 清空输入框内容
+                inputs.forEach(input => {
+                    input.value = '';
+                });
+                inputs[0].focus(); // 聚焦第一个输入框
             }
         }
 
         function generateImage() {
+            const prompt = document.getElementById('promptInput').value;
             const formData = new FormData();
             formData.append('mbti', currentMBTI);
+            formData.append('prompt', prompt);
             fetch('/generate', {
                 method: 'POST',
                 body: formData
             })
             .then(response => response.text())
-            .then(imagePath => {
-                const generatedImage = document.getElementById('generatedImage');
-                generatedImage.src = imagePath; // 设置生成的图像路径
-                generatedImage.style.display = 'block'; // 显示生成的图像
+            .then(message => {
+                // 不显示图像，只显示生成成功的消息
+                document.getElementById('goFindMessage').style.display = 'block';
             })
             .catch(error => console.error('Error:', error));
         }
